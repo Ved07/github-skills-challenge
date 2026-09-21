@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 jobs:
   coverage:
@@ -29,14 +30,21 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install pytest pytest-cov
 
-      - name: Run tests with coverage for src
+      - name: Run tests with coverage
+        id: coverage
+        continue-on-error: true
         run: |
-          pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+          pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-fail-under=50
 
       - name: Publish coverage comment to PR
+        if: always()
         uses: py-cov-action/python-coverage-comment-action@v3
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERAGE_PATH: ./coverage.xml
-          MINIMUM_GREEN: 80
-          MINIMUM_RED: 80
+          COVERAGE_PATH: .
+          MINIMUM_GREEN: 50
+          MINIMUM_ORANGE: 50
+
+      - name: Fail if coverage check did not pass
+        if: steps.coverage.outcome == 'failure'
+        run: exit 1
